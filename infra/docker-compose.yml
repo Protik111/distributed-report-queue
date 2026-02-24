@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  producer:
+    build:
+      context: ../producer
+    container_name: producer
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../.env
+    depends_on:
+      - redis
