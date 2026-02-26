@@ -1,35 +1,22 @@
-import { Server } from "http";
 import app from "./app";
 import config from "./config";
 
-async function bootstrap() {
-  const server: Server = app.listen(config.port, () => {
-    console.log(`Server running on port ${config.port}`);
-  });
+const PORT = config.port || 5000;
 
-  const exitHandler = () => {
-    if (server) {
-      server.close(() => {
-        console.log("Server closed");
-      });
-    }
-    process.exit(1);
-  };
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
-  const unexpectedErrorHandler = (error: unknown) => {
-    console.log(error);
-    exitHandler();
-  };
+// Handle only unexpected errors
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+  process.exit(1);
+});
 
-  process.on("uncaughtException", unexpectedErrorHandler);
-  process.on("unhandledRejection", unexpectedErrorHandler);
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled Rejection:", err);
+  process.exit(1);
+});
 
-  process.on("SIGTERM", () => {
-    console.log("SIGTERM received");
-    if (server) {
-      server.close();
-    }
-  });
-}
-
-bootstrap();
+// Do NOT handle SIGTERM/SIGINT for ts-node-dev hot reload
+// ts-node-dev will restart automatically

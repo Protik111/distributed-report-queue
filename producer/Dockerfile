@@ -7,9 +7,11 @@ COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm
 RUN pnpm install
 
-COPY . .
 
-RUN pnpm build
+# We'll mount code with volumes instead
+# COPY . .
+# Don't build yet for development, we'll run code directly
+# RUN pnpm build
 
 EXPOSE 5000
 
