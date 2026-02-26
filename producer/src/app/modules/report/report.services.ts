@@ -1,4 +1,5 @@
 import { reportQueue } from "../../../redis/queue";
+import { GENERATE_REPORT_JOB } from "../../../shared/constants";
 import { IReportResponse } from "./report.interfaces";
 
 const generateReport = async (
@@ -6,7 +7,7 @@ const generateReport = async (
   data: IReportResponse,
 ): Promise<string> => {
   const job = await reportQueue.add(
-    "generate-report",
+    GENERATE_REPORT_JOB,
     {
       reportType: reportType,
       data,

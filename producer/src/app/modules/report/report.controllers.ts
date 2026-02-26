@@ -7,11 +7,11 @@ const generateReport = catchAsync(async (req: Request, res: Response) => {
   const { reportType, data } = req.body;
   const result = await ReportService.generateReport(reportType, data);
 
-  sendResponse<string>(res, {
+  sendResponse<{ jobId: string }>(res, {
     statusCode: 202,
     success: true,
     message: "Report job created",
-    data: result,
+    data: { jobId: result },
   });
 });
 
