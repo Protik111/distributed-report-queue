@@ -51,7 +51,7 @@ healthApp.get("/ready", async (_req: Request, res: Response) => {
 export function startHealthServer(): Promise<void> {
   return new Promise((resolve) => {
     healthApp.listen(PORT, () => {
-      logger.info({ port: PORT }, "🏥 Health server started");
+      logger.info({ port: PORT }, "Health server started");
       resolve();
     });
   });

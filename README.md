@@ -70,3 +70,43 @@
 └─────────────────────────────────────────────────────┘
 
 ```
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  worker/src/index.ts EXECUTION FLOW                     │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  1. Load environment variables (dotenv)                 │
+│     ↓                                                   │
+│  2. Import dependencies                                 │
+│     - redis.ts → Connects to Redis                      │
+│     - report.processor.ts → Loads job handler           │
+│     - health.ts → Prepares health server                │
+│     ↓                                                   │
+│  3. Call startWorker() function                         │
+│     ↓                                                   │
+│  4. Start Health Server (health.ts)                     │
+│     - Opens port 5002                                   │
+│     - Listens for GET /health requests                  │
+│     ↓                                                   │
+│  5. Create BullMQ Worker                                │
+│     - Connects to Redis queue "report:queue"            │
+│     - Sets concurrency (e.g., 2 jobs at once)           │
+│     - Registers job processor (report.processor.ts)     │
+│     ↓                                                   │
+│  6. Attach Event Listeners                              │
+│     - on("completed") → Log success                     │
+│     - on("failed") → Log error                          │
+│     - on("stalled") → Log warning                       │
+│     ↓                                                   │
+│  7. Setup Graceful Shutdown Handlers                    │
+│     - SIGINT (Ctrl+C) → Close worker, exit              │
+│     - SIGTERM (Docker stop) → Close worker, exit        │
+│     ↓                                                   │
+│  8. Worker IDLES & WAITS                                │
+│     - Polls Redis for new jobs                          │
+│     - When job arrives → Calls report.processor.ts      │
+│     - Continues polling...                              │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```

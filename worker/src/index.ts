@@ -51,7 +51,7 @@ async function startWorker() {
   });
 
   const shutdown = async (signal: string) => {
-    logger.info({ signal }, "🛑 Shutting down...");
+    logger.info({ signal }, "Shutting down...");
     await worker.close();
     await redisConnection.quit();
     process.exit(0);
@@ -62,7 +62,7 @@ async function startWorker() {
 
   logger.info(
     { workerId: WORKER_ID, concurrency: CONCURRENCY },
-    "🚀 Worker started",
+    "Worker started",
   );
 }
 
