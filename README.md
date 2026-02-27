@@ -37,3 +37,36 @@
 │  (Express.js)   │  Port: 5003
 └─────────────────┘
 ```
+
+
+```
+
+┌─────────────────────────────────────────────────────┐
+│                    JOB LIFECYCLE                    │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  1. SUBMIT                                          │
+│     User → Producer → Redis Queue                   │
+│     State: waiting                                  │
+│                                                     │
+│  2. CLAIM                                           │
+│     Worker polls Redis → Atomic pop → Lock acquired │
+│     State: active                                   │
+│                                                     │
+│  3. PROCESS                                         │
+│     Worker: Generate PDF → Save to disk             │
+│     Redis: Update progress, store metadata          │
+│     State: active (progress: 0→100)                 │
+│                                                     │
+│  4. COMPLETE                                        │
+│     Worker: Return result → BullMQ marks done       │
+│     Redis: Move to completed set, store result      │
+│     State: completed                                │
+│                                                     │
+│  5. RETRIEVE                                        │
+│     User → Dashboard → Redis → Return result + URL  │
+│     User → Worker → Download PDF from /uploads      │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+
+```

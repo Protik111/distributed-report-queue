@@ -1,3 +1,5 @@
+// Helper (Job processing logic)
+
 import { Job } from "bullmq";
 import puppeteer, { Browser } from "puppeteer";
 import fs from "fs";
@@ -70,7 +72,7 @@ export async function processReportJob(
   const { reportType, data, userId } = job.data;
   const jobId = job.id;
 
-  logger.info({ jobId, reportType, userId }, "🔄 Processing report job");
+  logger.info({ jobId, reportType, userId }, "Processing report job");
 
   await job.updateProgress(10);
 
@@ -126,7 +128,7 @@ export async function processReportJob(
 
     logger.info(
       { jobId, reportUrl, fileSize: pdfBuffer.length },
-      "✅ Report generated",
+      "Report generated",
     );
 
     return result;

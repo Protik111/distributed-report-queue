@@ -1,3 +1,5 @@
+// ENTRY POINT #1 (Main Worker)
+
 import { Worker, Job } from "bullmq";
 import dotenv from "dotenv";
 import {

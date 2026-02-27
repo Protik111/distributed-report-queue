@@ -1,4 +1,5 @@
-// worker/src/lib/redis.ts
+// Helper (Redis connection)
+
 import IORedis from "ioredis";
 
 // Support both REDIS_URL and separate HOST/PORT

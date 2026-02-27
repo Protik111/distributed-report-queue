@@ -1,3 +1,5 @@
+// Helper (Health check server)
+
 import express, { Request, Response } from "express";
 import redisConnection from "./lib/redis";
 import logger from "./utils/logger";
