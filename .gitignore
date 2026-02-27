@@ -1,2 +1,3 @@
 producer/node_modules
 .env
+worker/node_modules
