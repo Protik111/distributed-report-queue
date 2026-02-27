@@ -2,22 +2,81 @@ version: "3.9"
 
 services:
   redis:
-    image: redis:7
+    image: redis:7-alpine
     container_name: redis
     ports:
-      - 6379:6379
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   producer:
     build:
       context: ../producer
     container_name: producer
     ports:
-      - 5001:5000
+      - "5001:5000"
     env_file:
       - ../.env
     depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../producer:/app
+      - /app/node_modules
+    command: pnpm dev
+    restart: unless-stopped
+
+  # Worker Service (processes jobs)
+  worker:
+    build:
+      context: ../worker
+    container_name: worker
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379
+      - WORKER_ID=worker-1
+      - WORKER_CONCURRENCY=2
+      - LOG_LEVEL=info
+      - PORT=5002
+      - NODE_ENV=development
+    depends_on:
       - redis
     volumes:
-      - ../producer:/app       # Mount your local code into the container
-      - /app/node_modules      # Use container's node_modules, not host
-    command: pnpm dev          # Run dev script (ts-node-dev)
+      - ../worker:/app
+      - /app/node_modules
+      - worker_uploads:/app/uploads  # Persist generated PDFs
+    command: pnpm dev
+    restart: unless-stopped
+    # Scale horizontally: docker-compose up --scale worker=3
+    deploy:
+      replicas: 2
+
+  # Scheduler Service (handles stalled jobs)
+  scheduler:
+    build:
+      context: ../worker
+    container_name: scheduler
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=info
+      - NODE_ENV=development
+    depends_on:
+      - redis
+    volumes:
+      - ../worker:/app
+      - /app/node_modules
+    command: pnpm run start:scheduler
+    restart: unless-stopped
+    deploy:
+      replicas: 1  # Only ONE scheduler needed per queue

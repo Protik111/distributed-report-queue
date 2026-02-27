@@ -1,5 +1,18 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
+# worker/Dockerfile
+FROM node:20-alpine
+
+# Install Puppeteer dependencies
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    wget
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 WORKDIR /app
 
@@ -9,49 +22,19 @@ RUN npm install -g pnpm
 # Copy dependency files
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies
+# Install ALL dependencies (including dev for ts-node-dev)
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
+# Copy source code (will be overridden by volume mount in dev)
 COPY . .
 
-# Build TypeScript
+# Create uploads directory
+RUN mkdir -p uploads && chown -R nodejs:nodejs uploads
+
+# Build TypeScript (optional in dev, required for prod)
 RUN pnpm build
 
-# Stage 2: Production
-FROM node:20-alpine
-
-# Install Puppeteer dependencies (for PDF generation)
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
-
-# Set Puppeteer environment
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
-WORKDIR /app
-
-# Install pnpm
-RUN npm install -g pnpm
-
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
-
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
-
-# Copy built code from builder stage
-COPY --from=builder /app/dist ./dist
-
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
+# Switch to non-root user
 USER nodejs
 
 EXPOSE 5002
@@ -60,5 +43,5 @@ EXPOSE 5002
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:5002/health || exit 1
 
-# Start the worker
-CMD ["node", "dist/index.js"]
+# Default command (overridden by docker-compose in dev)
+CMD ["pnpm", "start"]
