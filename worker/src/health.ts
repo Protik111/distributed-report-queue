@@ -5,7 +5,7 @@ import redisConnection from "./lib/redis";
 import logger from "./utils/logger";
 
 const healthApp = express();
-const PORT = Number(process.env.PORT) || 5002;
+const PORT = Number(process.env.W_PORT) || 5002;
 
 healthApp.get("/health", async (_req: Request, res: Response) => {
   const startTime = Date.now();
