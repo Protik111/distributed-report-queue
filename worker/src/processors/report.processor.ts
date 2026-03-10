@@ -133,7 +133,7 @@ export async function processReportJob(
 
     return result;
   } catch (error: any) {
-    logger.error({ jobId, error: error.message }, "❌ Job failed");
+    logger.error({ jobId, error: error.message }, "Job failed");
 
     // Store Error in Redis
     await redisConnection.setex(

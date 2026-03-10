@@ -110,3 +110,47 @@
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
+
+#Complete Sevice-to-Key Connection Diagram
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           REDIS (Central State)                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  QUEUES (Sorted Sets):                                                      │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ report:queue          │ report:queue:active   │ report:queue:failed │   │
+│  │ report:queue:wait     │ report:queue:completed│ report:queue:delayed│   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  JOB DATA (Hashes/Strings):                                                 │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ job:{id}            │ job:{id}:progress   │ job:result:{id}         │   │
+│  │ job:error:{id}      │ lock:report:queue:{id}                        │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  WORKER DATA (Strings):                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ worker:heartbeat:{id}                                               │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+         ▲                    ▲                    ▲                    ▲
+         │                    │                    │                    │
+         │ ZADD, HSET         │ BRPOPLPUSH         │ ZRANGE, GET        │ GET, SETEX
+         │ (Submit)           │ (Claim, Process)   │ (Monitor)          │ (Heartbeat)
+         │                    │                    │                    │
+         ▼                    ▼                    ▼                    ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│    PRODUCER     │ │     WORKER      │ │   SCHEDULER     │ │    DASHBOARD    │
+│  (Express.js)   │ │  (BullMQ + TS)  │ │ (QueueScheduler)│ │  (Express.js)   │
+│  Port: 5001     │ │  Port: 5002     │ │  (Internal)     │ │  Port: 5003     │
+├─────────────────┤ ├─────────────────┤ ├─────────────────┤ ├─────────────────┤
+│ Writes:         │ │ Reads/Writes:   │ │ Reads:          │ │ Reads:          │
+│ - report:queue  │ │ - report:queue  │ │ - active jobs   │ │ - All queue     │
+│ - job:{id}      │ │ - job:{id}      │ │ - lock:{id}     │ │   counts        │
+│                 │ │ - job:result:{id}│ │                 │ │ - job:result:{id}│
+│                 │ │ - job:{id}:prog │ │ Writes:         │ │ - worker:hb:{id}│
+│                 │ │ - lock:{id}     │ │ - requeue jobs  │ │                 │
+│                 │ │ - worker:hb:{id}│ │                 │ │                 │
+└─────────────────┘ └─────────────────┘ └─────────────────┘ └─────────────────┘
