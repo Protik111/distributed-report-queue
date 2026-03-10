@@ -13,8 +13,8 @@ import { startHealthServer } from "./health";
 
 dotenv.config();
 
-const REPORT_QUEUE = "report:queue";
-const GENERATE_REPORT_JOB = "generate:report";
+const REPORT_QUEUE = "report-queue";
+const GENERATE_REPORT_JOB = "generate-report";
 
 const WORKER_ID = process.env.WORKER_ID || `worker-${process.pid}`;
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || "2");

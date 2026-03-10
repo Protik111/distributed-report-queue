@@ -4,7 +4,7 @@ import { JobScheduler } from "bullmq";
 import { redisConnection } from "./lib/redis";
 import logger from "./utils/logger";
 
-const REPORT_QUEUE = "report:queue";
+const REPORT_QUEUE = "report-queue";
 
 export async function startScheduler() {
   logger.info("Starting Queue Scheduler...");

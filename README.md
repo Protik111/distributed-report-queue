@@ -90,7 +90,7 @@
 │     - Listens for GET /health requests                  │
 │     ↓                                                   │
 │  5. Create BullMQ Worker                                │
-│     - Connects to Redis queue "report:queue"            │
+│     - Connects to Redis queue "report-queue"            │
 │     - Sets concurrency (e.g., 2 jobs at once)           │
 │     - Registers job processor (report.processor.ts)     │
 │     ↓                                                   │
@@ -120,14 +120,14 @@
 │                                                                             │
 │  QUEUES (Sorted Sets):                                                      │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │ report:queue          │ report:queue:active   │ report:queue:failed │   │
-│  │ report:queue:wait     │ report:queue:completed│ report:queue:delayed│   │
+│  │ report-queue          │ report-queue:active   │ report-queue:failed │   │
+│  │ report-queue:wait     │ report-queue:completed│ report-queue:delayed│   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 │  JOB DATA (Hashes/Strings):                                                 │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │ job:{id}            │ job:{id}:progress   │ job:result:{id}         │   │
-│  │ job:error:{id}      │ lock:report:queue:{id}                        │   │
+│  │ job:error:{id}      │ lock:report-queue:{id}                        │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 │  WORKER DATA (Strings):                                                     │
@@ -148,7 +148,7 @@
 │  Port: 5001     │ │  Port: 5002     │ │  (Internal)     │ │  Port: 5003     │
 ├─────────────────┤ ├─────────────────┤ ├─────────────────┤ ├─────────────────┤
 │ Writes:         │ │ Reads/Writes:   │ │ Reads:          │ │ Reads:          │
-│ - report:queue  │ │ - report:queue  │ │ - active jobs   │ │ - All queue     │
+│ - report-queue  │ │ - report-queue  │ │ - active jobs   │ │ - All queue     │
 │ - job:{id}      │ │ - job:{id}      │ │ - lock:{id}     │ │   counts        │
 │                 │ │ - job:result:{id}│ │                 │ │ - job:result:{id}│
 │                 │ │ - job:{id}:prog │ │ Writes:         │ │ - worker:hb:{id}│
