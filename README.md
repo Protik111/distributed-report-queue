@@ -156,3 +156,7 @@
 │                 │ │ - worker:hb:{id}│ │                 │ │                 │
 └─────────────────┘ └─────────────────┘ └─────────────────┘ └─────────────────┘
 ```
+
+Producer writes to Redis → Worker reads from Redis.
+Worker writes lock to Redis → Scheduler reads lock from Redis.
+Worker writes result to Redis → Dashboard reads result from Redis.
