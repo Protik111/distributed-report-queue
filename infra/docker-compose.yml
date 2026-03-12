@@ -37,6 +37,7 @@ services:
       - ../.env
     environment:
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379
       - WORKER_ID=worker-1
       - WORKER_CONCURRENCY=2
@@ -60,6 +61,7 @@ services:
       - ../.env
     environment:
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=info
       - NODE_ENV=development
@@ -68,7 +70,7 @@ services:
     volumes:
       - ../worker:/app
       - /app/node_modules
-    command: pnpm run start:scheduler
+    command: pnpm run dev:scheduler
     restart: unless-stopped
 
 volumes:
