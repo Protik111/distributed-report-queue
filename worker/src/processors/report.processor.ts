@@ -60,7 +60,7 @@ async function saveToLocalDisk(
   fs.writeFileSync(filePath, buffer);
 
   // Return URL (in production, this would be S3/CDN URL)
-  return `${process.env.REPORT_BASE_URL || "http://localhost:5002"}/uploads/${fileName}`;
+  return `${process.env.REPORT_BASE_URL || "http://localhost:5002"}/${fileName}`;
 }
 
 /**
