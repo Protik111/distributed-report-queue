@@ -72,6 +72,27 @@ services:
       - /app/node_modules
     command: pnpm run dev:scheduler
     restart: unless-stopped
+  
+  dashboard-api:
+    build:
+      context: ../dashboard-api
+    container_name: dashboard-api
+    ports:
+      - "5003:5003"
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379
+      - DASHBOARD_PORT=5003
+      - NODE_ENV=development
+    depends_on:
+      - redis
+    volumes:
+      - ../dashboard-api:/app
+      - /app/node_modules
+    command: pnpm dev
+    restart: unless-stopped
 
 volumes:
   redis_data:

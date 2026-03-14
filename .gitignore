@@ -1,3 +1,4 @@
 producer/node_modules
 .env
 worker/node_modules
+dashboard-api/node_modules
