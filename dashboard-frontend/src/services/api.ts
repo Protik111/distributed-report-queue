@@ -62,6 +62,21 @@ interface FailedJobsResponse {
   limit: number;
 }
 
+export interface CompletedJobsResponse {
+  jobs: Array<{
+    id: string;
+    name: string;
+    success: boolean;
+    reportUrl: string;
+    fileName: string;
+    fileSize: number;
+    processedAt: number;
+  }>;
+  total: number;
+  page: number;
+  limit: number;
+}
+
 // Statistics API
 export const getStats = async (): Promise<StatsResponse> => {
   const response = await axios.get(`${API_BASE}/api/stats`);
@@ -87,6 +102,12 @@ export const getJob = async (jobId: string): Promise<JobResponse | null> => {
 // Failed Jobs (DLQ)
 export const getFailedJobs = async (): Promise<FailedJobsResponse> => {
   const response = await axios.get(`${API_BASE}/api/jobs/failed`);
+  return response.data;
+};
+
+// Completed Jobs
+export const getCompletedJobs = async (): Promise<CompletedJobsResponse> => {
+  const response = await axios.get(`${API_BASE}/api/jobs/completed`);
   return response.data;
 };
 

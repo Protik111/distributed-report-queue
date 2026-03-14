@@ -55,36 +55,50 @@ app.get("/api/stats", async (_req, res) => {
   }
 });
 
-// Job Details by ID
-app.get("/api/jobs/:jobId", async (req, res) => {
+// ENDPOINT FOR COMPLETED JOBS
+app.get("/api/jobs/completed", async (_req, res) => {
   try {
-    const { jobId } = req.params;
+    const jobResultKeys = await redisConnection.keys("job:result:*");
+    
+    const jobs = [];
 
-    const resultRaw = await redisConnection.get(`job:result:${jobId}`);
-    const result = resultRaw ? JSON.parse(resultRaw) : null;
+    for (const key of jobResultKeys) {
+      const resultRaw = await redisConnection.get(key);
+      if (resultRaw) {
+        const resultData = JSON.parse(resultRaw);
+        const jobId = key.split(":").pop();
 
-    const queue = new Queue(REPORT_QUEUE_NAME, { connection: redisConnection });
-    const job = await queue.getJob(jobId);
-    await queue.close();
+        jobs.push({
+          id: jobId || "",
+          name: "generate-report",
+          success: resultData.success,
+          reportUrl: resultData.reportUrl,
+          fileName: resultData.fileName,
+          fileSize: resultData.fileSize,
+          processedAt: resultData.processedAt || Date.now(),
+        });
+      }
+    }
+
+    // Sort by processedAt descending
+    jobs.sort((a, b) => b.processedAt - a.processedAt);
 
     res.json({
-      id: jobId,
-      status: result?.success ? "completed" : "unknown",
-      progress: 100,
-      result,
-      jobData: job?.data || null,
-      attempts: result?.attempts || 0,
-      timestamp: Date.now(),
+      jobs,
+      total: jobs.length,
+      page: 0,
+      limit: jobs.length || 0,
     });
   } catch (error: any) {
+    console.error("Completed jobs ERROR:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ✅ NEW ULTRA-SAFE FAILED JOBS ENDPOINT
+// FAILED JOBS ENDPOINT
 app.get("/api/jobs/failed", async (_req, res) => {
   try {
-    // ⚠️ DO NOT TOUCH ANY BULLMQ KEYS DIRECTLY!
+    // DO NOT TOUCH ANY BULLMQ KEYS DIRECTLY!
     // Just return empty array - all your jobs have succeeded!
 
     console.log("DEBUG: Checking for failed jobs...");
@@ -117,7 +131,33 @@ app.get("/api/jobs/failed", async (_req, res) => {
       limit: jobs.length || 0,
     });
   } catch (error: any) {
-    console.error("❌ Failed jobs ERROR:", error.message);
+    console.error("Failed jobs ERROR:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Job Details by ID
+app.get("/api/jobs/:jobId", async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    const resultRaw = await redisConnection.get(`job:result:${jobId}`);
+    const result = resultRaw ? JSON.parse(resultRaw) : null;
+
+    const queue = new Queue(REPORT_QUEUE_NAME, { connection: redisConnection });
+    const job = await queue.getJob(jobId);
+    await queue.close();
+
+    res.json({
+      id: jobId,
+      status: result?.success ? "completed" : "unknown",
+      progress: 100,
+      result,
+      jobData: job?.data || null,
+      attempts: result?.attempts || 0,
+      timestamp: Date.now(),
+    });
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });

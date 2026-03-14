@@ -3,17 +3,25 @@ import StatCard from "./components/StatCard";
 import WorkerCard from "./components/WorkerCard";
 import FailedJobsTable from "./components/FailedJobsTable";
 import Header from "./components/Header";
-import { getStats, getWorkers, getFailedJobs } from "./services/api";
+import {
+  getStats,
+  getWorkers,
+  getFailedJobs,
+  getCompletedJobs,
+} from "./services/api";
 import SubmitJobModal from "./components/SubmitJobModal";
+import CompletedJobsTable from "./components/CompletedJobsTable";
 
 type Stats = Awaited<ReturnType<typeof getStats>>;
 type Workers = Awaited<ReturnType<typeof getWorkers>>;
 type FailedJobs = Awaited<ReturnType<typeof getFailedJobs>>;
+type CompletedJobs = Awaited<ReturnType<typeof getCompletedJobs>>;
 
 function App() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [workers, setWorkers] = useState<Workers["workers"]>([]);
   const [failedJobs, setFailedJobs] = useState<FailedJobs["jobs"]>([]);
+  const [completedJobs, setCompletedJobs] = useState<CompletedJobs["jobs"]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -22,14 +30,16 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const [statsRes, workersRes, jobsRes] = await Promise.all([
+      const [statsRes, workersRes, failedJobsRes, completedJobsRes] = await Promise.all([
         getStats(),
         getWorkers(),
         getFailedJobs(),
+        getCompletedJobs(),
       ]);
       setStats(statsRes);
       setWorkers(workersRes.workers);
-      setFailedJobs(jobsRes.jobs);
+      setFailedJobs(failedJobsRes.jobs);
+      setCompletedJobs(completedJobsRes.jobs);
     } catch (err) {
       setError("Failed to fetch dashboard data");
       console.error(err);
@@ -170,6 +180,14 @@ function App() {
         <>
           <div className="section-title">Failed Jobs ({failedJobs.length})</div>
           <FailedJobsTable jobs={failedJobs} />
+        </>
+      )}
+
+      {/* Completed Jobs Section */}
+      {completedJobs.length > 0 && (
+        <>
+          <div className="section-title">Completed Jobs ({completedJobs.length})</div>
+          <CompletedJobsTable jobs={completedJobs} />
         </>
       )}
 
