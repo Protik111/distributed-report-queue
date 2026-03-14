@@ -4,9 +4,15 @@ interface HeaderProps {
   lastRefresh: number;
   onRefresh: () => void;
   loading: boolean;
+  onOpenModal?: () => void; // ← Add this optional prop
 }
 
-const Header: React.FC<HeaderProps> = ({ lastRefresh, onRefresh, loading }) => {
+const Header: React.FC<HeaderProps> = ({
+  lastRefresh,
+  onRefresh,
+  loading,
+  onOpenModal,
+}) => {
   return (
     <div className="header">
       <h1>📊 Job Queue Dashboard</h1>
@@ -19,14 +25,15 @@ const Header: React.FC<HeaderProps> = ({ lastRefresh, onRefresh, loading }) => {
           {loading ? null : <>🔄 Refresh</>}
           <span>Last: {new Date(lastRefresh).toLocaleTimeString()}</span>
         </button>
-        <a
-          href="http://localhost:5001/api/v1/reports/generate"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        {/* Changed from link to button */}
+        <button
+          onClick={onOpenModal}
           className="btn btn-primary"
+          style={{ marginLeft: "12px" }}
         >
           ➕ New Report
-        </a>
+        </button>
       </div>
     </div>
   );

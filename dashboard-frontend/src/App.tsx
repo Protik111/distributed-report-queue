@@ -4,6 +4,7 @@ import WorkerCard from "./components/WorkerCard";
 import FailedJobsTable from "./components/FailedJobsTable";
 import Header from "./components/Header";
 import { getStats, getWorkers, getFailedJobs } from "./services/api";
+import SubmitJobModal from "./components/SubmitJobModal";
 
 type Stats = Awaited<ReturnType<typeof getStats>>;
 type Workers = Awaited<ReturnType<typeof getWorkers>>;
@@ -15,6 +16,7 @@ function App() {
   const [failedJobs, setFailedJobs] = useState<FailedJobs["jobs"]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -48,6 +50,7 @@ function App() {
         lastRefresh={stats?.timestamp || Date.now()}
         onRefresh={fetchData}
         loading={loading}
+        onOpenModal={() => setShowModal(true)} // ← Add this prop
       />
 
       {/* Error Alert */}
@@ -181,6 +184,13 @@ function App() {
       >
         Auto-refresh every 5 seconds • Built with for distributed systems
       </div>
+
+      {showModal && (
+        <SubmitJobModal
+          onClose={() => setShowModal(false)}
+          onSubmitSuccess={() => fetchData()} // Refresh stats after success
+        />
+      )}
     </div>
   );
 }

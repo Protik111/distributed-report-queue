@@ -4,7 +4,7 @@ import { ReportController } from "./report.controllers";
 const router = Router();
 
 router.post(
-  "/",
+  "/generate",
   //   validateRequest(TodoValidation.createTodoZodSchema),
   ReportController.generateReport,
 );
