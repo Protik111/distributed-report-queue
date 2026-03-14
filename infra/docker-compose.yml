@@ -83,13 +83,32 @@ services:
       - ../.env
     environment:
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379
-      - DASHBOARD_PORT=5003
+      - LOG_LEVEL=info
       - NODE_ENV=development
     depends_on:
       - redis
     volumes:
       - ../dashboard-api:/app
+      - /app/node_modules
+    command: pnpm dev
+    restart: unless-stopped
+
+  dashboard-frontend:
+    build:
+      context: ../dashboard-frontend
+    container_name: dashboard-frontend
+    ports:
+      - "5004:5004"
+    environment:
+      - FRONTEND_PORT=5004
+      - VITE_API_URL=http://localhost:5003
+      - NODE_ENV=development
+    depends_on:
+      - dashboard-api
+    volumes:
+      - ../dashboard-frontend:/app
       - /app/node_modules
     command: pnpm dev
     restart: unless-stopped

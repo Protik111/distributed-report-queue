@@ -53,7 +53,7 @@ function App() {
       {/* Error Alert */}
       {error && (
         <div className="alert alert-error">
-          ⚠️ {error} - Retrying automatically...
+          {error} - Retrying automatically...
         </div>
       )}
 
@@ -148,7 +148,7 @@ function App() {
       )}
 
       {/* Workers Section */}
-      <div className="section-title">👷 Active Workers ({workers.length})</div>
+      <div className="section-title">Active Workers ({workers.length})</div>
       {workers.length === 0 ? (
         <div className="card empty-state">
           <div className="empty-state-icon">🤖</div>
@@ -165,9 +165,7 @@ function App() {
       {/* Failed Jobs Section */}
       {failedJobs.length > 0 && (
         <>
-          <div className="section-title">
-            ❌ Failed Jobs ({failedJobs.length})
-          </div>
+          <div className="section-title">Failed Jobs ({failedJobs.length})</div>
           <FailedJobsTable jobs={failedJobs} />
         </>
       )}
@@ -181,7 +179,7 @@ function App() {
           fontSize: "14px",
         }}
       >
-        Auto-refresh every 5 seconds • Built with ❤️ for distributed systems
+        Auto-refresh every 5 seconds • Built with for distributed systems
       </div>
     </div>
   );
