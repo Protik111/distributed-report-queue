@@ -2,3 +2,9 @@ producer/node_modules
 .env
 worker/node_modules
 dashboard-api/node_modules
+dashboard-frontend/node_modules
+dist
+build
+coverage
+*.log
+*.env
