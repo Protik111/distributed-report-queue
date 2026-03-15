@@ -1,0 +1,123 @@
+name: Deploy to AWS EC2
+
+on:
+  workflow_run:
+    workflows: ["Build & Push to DockerHub"]
+    branches: [main]
+    types: [completed]
+  
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Set up Node.js for Pulumi
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install Pulumi dependencies
+        run: |
+          cd infra-pulumi
+          pnpm install
+
+      - name: Run Pulumi Deployment
+        id: pulumi
+        uses: pulumi/actions@v5
+        with:
+          command: up
+          stack-name: dev
+          work-dir: infra-pulumi
+          upsert: true
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+
+      - name: Get Public IP from Pulumi Stack Output
+        id: ec2
+        run: |
+          cd infra-pulumi
+          PUBLIC_IP=$(pulumi stack output publicIp --stack dev)
+          echo "public_ip=${PUBLIC_IP}" >> $GITHUB_OUTPUT
+          echo "EC2 Public IP: ${PUBLIC_IP}"
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+
+      - name: Wait for EC2 to be ready
+        run: |
+          echo "Waiting 60 seconds for EC2 instance to initialize..."
+          sleep 60
+
+      - name: Deploy Services via SSH
+        uses: appleboy/ssh-action@master
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          REPORTS_BUCKET_NAME: distributed-job-reports
+        with:
+          host: ${{ steps.ec2.outputs.public_ip }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          timeout: 120s
+          script: |
+            cd ~/distributed-report-queue
+
+            cat > .env << EOF
+            REDIS_HOST=redis
+            REDIS_PORT=6379
+            REDIS_URL=redis://redis:6379
+            DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
+            DOCKER_IMAGE_TAG=latest
+            NODE_ENV=production
+            REPORTS_BUCKET=$REPORTS_BUCKET_NAME
+            AWS_REGION=us-east-1
+            EOF
+
+            cd infra
+            docker-compose -f docker-compose.prod.yml down --remove-orphans
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d --scale worker=2
+            docker system prune -af --volumes=false
+
+      - name: Verify Deployment
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ steps.ec2.outputs.public_ip }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          timeout: 120s
+          script: |
+            sleep 30
+
+            # Test all endpoints
+            PRODUCER_STATUS=$(curl -sf http://localhost:5001/health || echo "unreachable")
+            API_STATUS=$(curl -sf http://localhost:5003/api/stats || echo "unreachable")
+
+            echo "Producer Health: $PRODUCER_STATUS"
+            echo "API Stats: $API_STATUS"
+
+            if [[ "$PRODUCER_STATUS" == *"healthy"* ]]; then
+              echo "✅ All services running!"
+              exit 0
+            else
+              echo "❌ Deployment verification failed"
+              docker-compose -f /home/ec2-user/distributed-report-queue/infra/docker-compose.prod.yml ps
+              exit 1
+            fi

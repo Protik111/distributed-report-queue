@@ -3,6 +3,7 @@ producer/node_modules
 worker/node_modules
 dashboard-api/node_modules
 dashboard-frontend/node_modules
+infra-pulumi/node_modules
 dist
 build
 coverage
