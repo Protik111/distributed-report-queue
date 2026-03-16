@@ -4,7 +4,6 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
-    container_name: redis
     ports: [ "6379:6379" ]
     command: redis-server --appendonly yes
     volumes: [ redis_data:/data ]
@@ -16,7 +15,6 @@ services:
 
   producer:
     image: ${DOCKERHUB_USERNAME}/producer:${DOCKER_IMAGE_TAG:-latest}
-    container_name: producer
     ports: [ "5001:5000" ]
     env_file: ../.env
     environment:
@@ -25,8 +23,7 @@ services:
 
   worker:
     image: ${DOCKERHUB_USERNAME}/worker:${DOCKER_IMAGE_TAG:-latest}
-    container_name: worker
-    ports: [ "5002:5002" ]
+    expose: [ "5002" ]
     env_file: ../.env
     environment:
       - REDIS_HOST=redis
@@ -43,7 +40,6 @@ services:
 
   scheduler:
     image: ${DOCKERHUB_USERNAME}/scheduler:${DOCKER_IMAGE_TAG:-latest}
-    container_name: scheduler
     env_file: ../.env
     environment:
       - REDIS_HOST=redis
@@ -55,7 +51,6 @@ services:
 
   dashboard-api:
     image: ${DOCKERHUB_USERNAME}/dashboard-api:${DOCKER_IMAGE_TAG:-latest}
-    container_name: dashboard-api
     ports: [ "5003:5003" ]
     env_file: ../.env
     environment:
@@ -67,7 +62,6 @@ services:
 
   dashboard-frontend:
     image: ${DOCKERHUB_USERNAME}/dashboard-ui:${DOCKER_IMAGE_TAG:-latest}
-    container_name: dashboard-frontend
     ports: [ "5004:5004" ]
     environment:
       - FRONTEND_PORT=5004
