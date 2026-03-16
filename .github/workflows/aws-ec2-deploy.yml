@@ -160,8 +160,8 @@ jobs:
 
             # Test all endpoints
             echo "Running health checks..."
-            PRODUCER_STATUS=$(curl -sf http://localhost:5001/health || echo "unreachable")
-            API_STATUS=$(curl -sf http://localhost:5003/health || echo "unreachable")
+            PRODUCER_STATUS=$(curl -sf http://127.0.0.1:5001/health || echo "unreachable")
+            API_STATUS=$(curl -sf http://127.0.0.1:5003/health || echo "unreachable")
 
             echo "Producer Health: $PRODUCER_STATUS"
             echo "API Health: $API_STATUS"

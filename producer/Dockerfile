@@ -8,10 +8,11 @@ RUN npm install -g pnpm
 RUN pnpm install
 
 
-# We'll mount code with volumes instead
-# COPY . .
-# Don't build yet for development, we'll run code directly
-# RUN pnpm build
+# Copy all source code
+COPY . .
+
+# Build for production
+RUN pnpm build
 
 EXPOSE 5000
 
