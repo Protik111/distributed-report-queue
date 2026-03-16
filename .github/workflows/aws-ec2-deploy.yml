@@ -110,6 +110,8 @@ jobs:
 
       - name: Verify Deployment
         uses: appleboy/ssh-action@master
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
         with:
           host: ${{ steps.ec2.outputs.public_ip }}
           username: ec2-user
@@ -117,19 +119,29 @@ jobs:
           timeout: 120s
           script: |
             sleep 30
+            
+            cd ~/distributed-report-queue/infra
+
+            echo "Checking container status..."
+            docker-compose -f docker-compose.prod.yml ps
 
             # Test all endpoints
             PRODUCER_STATUS=$(curl -sf http://localhost:5001/health || echo "unreachable")
-            API_STATUS=$(curl -sf http://localhost:5003/api/stats || echo "unreachable")
+            API_STATUS=$(curl -sf http://localhost:5003/health || echo "unreachable")
 
             echo "Producer Health: $PRODUCER_STATUS"
-            echo "API Stats: $API_STATUS"
+            echo "API Health: $API_STATUS"
 
-            if [[ "$PRODUCER_STATUS" == *"healthy"* ]]; then
-              echo "All services running!"
+            if [[ "$PRODUCER_STATUS" == *"Ok"* ]] && [[ "$API_STATUS" == *"healthy"* ]]; then
+              echo "All services running and healthy!"
               exit 0
             else
-              echo "Deployment verification failed"
-              docker-compose -f /home/ec2-user/distributed-report-queue/infra/docker-compose.prod.yml ps
+              echo "Deployment verification failed!"
+              echo "--- Container Status ---"
+              docker-compose -f docker-compose.prod.yml ps
+              echo "--- Producer Logs ---"
+              docker-compose -f docker-compose.prod.yml logs producer | tail -n 20
+              echo "--- Dashboard API Logs ---"
+              docker-compose -f docker-compose.prod.yml logs dashboard-api | tail -n 20
               exit 1
             fi
