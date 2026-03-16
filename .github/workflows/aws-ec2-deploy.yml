@@ -95,6 +95,10 @@ jobs:
             
             cd ~/distributed-report-queue
 
+            echo "Syncing code from GitHub..."
+            git fetch origin
+            git reset --hard origin/main
+
             echo "Creating .env file..."
             cat > .env << EOF
             REDIS_HOST=redis
