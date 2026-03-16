@@ -88,6 +88,7 @@ jobs:
           username: ec2-user
           key: ${{ steps.ec2.outputs.private_key }}
           timeout: 120s
+          envs: DOCKERHUB_USERNAME,REPORTS_BUCKET_NAME
           script: |
             cd ~/distributed-report-queue
 
@@ -101,6 +102,9 @@ jobs:
             REPORTS_BUCKET=$REPORTS_BUCKET_NAME
             AWS_REGION=ap-southeast-1
             EOF
+
+            # Copy .env to infra for docker-compose interpolation
+            cp .env infra/.env
 
             cd infra
             docker-compose -f docker-compose.prod.yml down --remove-orphans
@@ -117,6 +121,7 @@ jobs:
           username: ec2-user
           key: ${{ steps.ec2.outputs.private_key }}
           timeout: 120s
+          envs: DOCKERHUB_USERNAME
           script: |
             sleep 30
             
