@@ -162,7 +162,7 @@ app.get("/api/jobs/:jobId", async (req, res) => {
   }
 });
 
-// Workers (Handle empty case gracefully)
+// Workers - (Handle empty case gracefully)
 app.get("/api/workers", async (_req, res) => {
   try {
     const keys = await redisConnection.keys("worker:heartbeat:*");
