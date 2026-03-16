@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { submitReport } from "../services/api";
 
 interface SubmitJobModalProps {
   onClose: () => void;
@@ -16,23 +17,11 @@ const SubmitJobModal: React.FC<SubmitJobModalProps> = ({ onClose, onSubmitSucces
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5001/api/v1/reports/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reportType,
-          data: { period, revenue },
-        }),
-      });
-
-      if (response.ok) {
-        alert("✅ Report job submitted successfully!");
-        onSubmitSuccess();
-        onClose();
-      } else {
-        const error = await response.json();
-        alert(`❌ Error: ${error.message || "Failed to submit"}`);
-      }
+      await submitReport(reportType, { period, revenue });
+      
+      alert("✅ Report job submitted successfully!");
+      onSubmitSuccess();
+      onClose();
     } catch (err) {
       alert(`❌ Network error: ${typeof err === "object" && err !== null && "message" in err ? (err as { message: string }).message : String(err)}`);
     } finally {
