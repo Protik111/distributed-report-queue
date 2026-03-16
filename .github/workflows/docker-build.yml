@@ -24,16 +24,20 @@ jobs:
       matrix:
         service: 
           - name: producer
-            dockerfile: ./producer/Dockerfile
+            context: ./producer
+            dockerfile: ./Dockerfile
             
           - name: worker
-            dockerfile: ./worker/Dockerfile
+            context: ./worker
+            dockerfile: ./Dockerfile
             
           - name: scheduler
-            dockerfile: ./worker/Dockerfile
+            context: ./worker
+            dockerfile: ./Dockerfile
             
           - name: dashboard-api
-            dockerfile: ./dashboard-api/Dockerfile
+            context: ./dashboard-api
+            dockerfile: ./Dockerfile
 
     steps:
       - uses: actions/checkout@v4
@@ -50,8 +54,8 @@ jobs:
       - name: Build and Push Image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ${{ matrix.service.dockerfile }}
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.context }}/${{ matrix.service.dockerfile }}
           push: true
           tags: |
             ${{ env.DOCKERHUB_USERNAME }}/${{ matrix.service.name }}:${{ github.sha }}
@@ -89,8 +93,8 @@ jobs:
       - name: Build and Push Dashboard UI
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: dashboard-frontend/Dockerfile
+          context: ./dashboard-frontend
+          file: ./dashboard-frontend/Dockerfile
           push: true
           tags: |
             ${{ env.DOCKERHUB_USERNAME }}/dashboard-ui:${{ github.sha }}
