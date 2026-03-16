@@ -4,7 +4,7 @@ import * as tls from "@pulumi/tls";
 
 const config = new pulumi.Config();
 const region = config.get("region") || "ap-southeast-1";
-const instanceType = config.get("instanceType") || "t3.micro";
+const instanceType = config.get("instanceType") || "t2.micro";
 
 // Get values from Pulumi config
 const dockerHubUsername = config.require("dockerHubUsername");
@@ -164,7 +164,7 @@ const ec2Instance = new aws.ec2.Instance("worker-instance", {
   associatePublicIpAddress: true,
   rootBlockDevice: {
     volumeSize: 20,
-    volumeType: "gp3",
+    volumeType: "gp2",
     deleteOnTermination: true,
   },
   tags: { Name: "worker-instance" },
