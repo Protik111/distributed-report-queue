@@ -10,7 +10,15 @@ declare global {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5003";
+const getBaseUrl = (port: number) => {
+  if (typeof window !== "undefined") {
+    return `http://${window.location.hostname}:${port}`;
+  }
+  return `http://localhost:${port}`;
+};
+
+const API_BASE = import.meta.env.VITE_API_URL || getBaseUrl(5003);
+const PRODUCER_BASE = getBaseUrl(5001);
 
 interface JobResponse {
   id?: string;
@@ -114,7 +122,7 @@ export const getCompletedJobs = async (): Promise<CompletedJobsResponse> => {
 // Submit New Job
 export const submitReport = async (reportType: string, data: object) => {
   const response = await axios.post(
-    "http://localhost:5001/api/v1/reports/generate",
+    `${PRODUCER_BASE}/api/v1/reports/generate`,
     { reportType, data },
     { headers: { "Content-Type": "application/json" } }
   );
