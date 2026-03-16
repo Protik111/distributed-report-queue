@@ -138,7 +138,9 @@ chown -R ec2-user:ec2-user /home/ec2-user/distributed-report-queue
 echo "User data script complete. Deploy job will connect via SSH to finish setup."
 `;
 
-const encodedUserData = userDataScript.apply((s: string) => Buffer.from(s).toString("base64"));
+// encodedUserData is no longer needed, pass script directly
+// const encodedUserData = userDataScript.apply((s: string) => Buffer.from(s).toString("base64"));
+
 
 // EC2 Instance (replaces LaunchTemplate)
 const ec2Instance = new aws.ec2.Instance("worker-instance", {
@@ -147,7 +149,7 @@ const ec2Instance = new aws.ec2.Instance("worker-instance", {
   subnetId: publicSubnet.id,
   vpcSecurityGroupIds: [sgWorkers.id],
   keyName: keyPair.keyName,
-  userData: encodedUserData,
+  userData: userDataScript,
   associatePublicIpAddress: true,
   rootBlockDevice: {
     volumeSize: 20,

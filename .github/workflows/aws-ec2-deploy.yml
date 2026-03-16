@@ -38,6 +38,14 @@ jobs:
           cd infra-pulumi
           pnpm install
 
+      - name: Run Pulumi Refresh
+        run: |
+          cd infra-pulumi
+          pnpm exec pulumi refresh --stack dev --yes --non-interactive
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+
       - name: Run Pulumi Deployment
         id: pulumi
         uses: pulumi/actions@v5
