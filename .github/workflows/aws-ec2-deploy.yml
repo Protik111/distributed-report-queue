@@ -90,8 +90,12 @@ jobs:
           timeout: 120s
           envs: DOCKERHUB_USERNAME,REPORTS_BUCKET_NAME
           script: |
+            set -e
+            echo "Starting deployment..."
+            
             cd ~/distributed-report-queue
 
+            echo "Creating .env file..."
             cat > .env << EOF
             REDIS_HOST=redis
             REDIS_PORT=6379
@@ -103,14 +107,25 @@ jobs:
             AWS_REGION=ap-southeast-1
             EOF
 
+            echo "Verifying .env content (DOCKERHUB_USERNAME should be visible)..."
+            grep DOCKERHUB_USERNAME .env
+
             # Copy .env to infra for docker-compose interpolation
             cp .env infra/.env
 
             cd infra
+            echo "Stopping existing services..."
             docker-compose -f docker-compose.prod.yml down --remove-orphans
+            
+            echo "Pulling latest images..."
             docker-compose -f docker-compose.prod.yml pull
+            
+            echo "Starting services..."
             docker-compose -f docker-compose.prod.yml up -d --scale worker=2
+            
+            echo "Cleaning up old images..."
             docker system prune -af --volumes=false
+            echo "Deployment script finished successfully."
 
       - name: Verify Deployment
         uses: appleboy/ssh-action@master
@@ -123,14 +138,24 @@ jobs:
           timeout: 120s
           envs: DOCKERHUB_USERNAME
           script: |
-            sleep 30
-            
+            set -e
             cd ~/distributed-report-queue/infra
+
+            echo "Checking initialization logs (user-data.log)..."
+            if [ -f /var/log/user-data.log ]; then
+              tail -n 20 /var/log/user-data.log || true
+            else
+              echo "user-data.log not found."
+            fi
+
+            echo "Waiting 30 seconds for services to stabilize..."
+            sleep 30
 
             echo "Checking container status..."
             docker-compose -f docker-compose.prod.yml ps
 
             # Test all endpoints
+            echo "Running health checks..."
             PRODUCER_STATUS=$(curl -sf http://localhost:5001/health || echo "unreachable")
             API_STATUS=$(curl -sf http://localhost:5003/health || echo "unreachable")
 
@@ -142,11 +167,13 @@ jobs:
               exit 0
             else
               echo "Deployment verification failed!"
+              echo "--- Docker Stats ---"
+              docker stats --no-stream || true
               echo "--- Container Status ---"
               docker-compose -f docker-compose.prod.yml ps
               echo "--- Producer Logs ---"
-              docker-compose -f docker-compose.prod.yml logs producer | tail -n 20
+              docker-compose -f docker-compose.prod.yml logs producer | tail -n 50 || true
               echo "--- Dashboard API Logs ---"
-              docker-compose -f docker-compose.prod.yml logs dashboard-api | tail -n 20
+              docker-compose -f docker-compose.prod.yml logs dashboard-api | tail -n 50 || true
               exit 1
             fi
