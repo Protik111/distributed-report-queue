@@ -39,7 +39,21 @@ const bucketPublicAccessBlock = new aws.s3.BucketPublicAccessBlock("reports-buck
     blockPublicPolicy: false,
     ignorePublicAcls: false,
     restrictPublicBuckets: false,
-}, { provider });
+}, { provider, dependsOn: [bucket] });
+
+// S3 Ownership Controls - Required to allow "public-read" ACLs on objects
+const bucketOwnershipControls = new aws.s3.BucketOwnershipControls("reports-bucket-oc", {
+    bucket: bucket.id,
+    rule: {
+        objectOwnership: "BucketOwnerPreferred",
+    },
+}, { provider, dependsOn: [bucketPublicAccessBlock] });
+
+// Bucket ACL - Required for some lab environments
+const bucketAcl = new aws.s3.BucketAclV2("reports-bucket-acl", {
+    bucket: bucket.id,
+    acl: "public-read",
+}, { provider, dependsOn: [bucketOwnershipControls] });
 
 // IAM Role for EC2
 const ec2Role = new aws.iam.Role("worker-ec2-role", {
@@ -115,6 +129,13 @@ const routeTable = new aws.ec2.RouteTable("job-queue-rt", {
 const rtAssociation = new aws.ec2.RouteTableAssociation("job-queue-rta", {
   subnetId: publicSubnet.id,
   routeTableId: routeTable.id,
+}, { provider });
+
+// VPC Endpoint for S3 (Gateway) - Ensures reliable connectivity from VPC to S3
+const s3Endpoint = new aws.ec2.VpcEndpoint("s3-endpoint", {
+    vpcId: vpc.id,
+    serviceName: `com.amazonaws.${region}.s3`,
+    routeTableIds: [routeTable.id],
 }, { provider });
 
 // Security Group
