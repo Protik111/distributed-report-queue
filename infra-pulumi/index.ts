@@ -10,6 +10,11 @@ const instanceType = config.get("instanceType") || "t3.micro";
 const dockerHubUsername = config.require("dockerHubUsername");
 const githubUsername = config.require("githubUsername");
 
+// Explicit AWS Provider to force the region and avoid any implicit confusion
+const provider = new aws.Provider("aws-provider", {
+    region: region as aws.Region,
+});
+
 // Create an SSH Key Pair dynamically
 const sshKey = new tls.PrivateKey("worker-ssh-key", {
     algorithm: "RSA",
@@ -19,7 +24,7 @@ const sshKey = new tls.PrivateKey("worker-ssh-key", {
 const keyPair = new aws.ec2.KeyPair("worker-key-pair", {
     keyName: "job-queue-auto-key",
     publicKey: sshKey.publicKeyOpenssh,
-});
+}, { provider });
 
 // VPC
 const vpc = new aws.ec2.Vpc("job-queue-vpc", {
@@ -27,13 +32,13 @@ const vpc = new aws.ec2.Vpc("job-queue-vpc", {
   enableDnsHostnames: true,
   enableDnsSupport: true,
   tags: { Name: "job-queue-vpc" },
-});
+}, { provider });
 
 // Internet Gateway for public access
 const igw = new aws.ec2.InternetGateway("job-queue-igw", {
   vpcId: vpc.id,
   tags: { Name: "job-queue-igw" },
-});
+}, { provider });
 
 // Public Subnet
 const publicSubnet = new aws.ec2.Subnet("job-queue-public-subnet", {
@@ -42,7 +47,7 @@ const publicSubnet = new aws.ec2.Subnet("job-queue-public-subnet", {
   availabilityZone: `${region}a`,
   mapPublicIpOnLaunch: true,
   tags: { Name: "job-queue-public-subnet" },
-});
+}, { provider });
 
 // Route Table
 const routeTable = new aws.ec2.RouteTable("job-queue-rt", {
@@ -52,13 +57,13 @@ const routeTable = new aws.ec2.RouteTable("job-queue-rt", {
     gatewayId: igw.id,
   }],
   tags: { Name: "job-queue-rt" },
-});
+}, { provider });
 
 // Route Table Association
 const rtAssociation = new aws.ec2.RouteTableAssociation("job-queue-rta", {
   subnetId: publicSubnet.id,
   routeTableId: routeTable.id,
-});
+}, { provider });
 
 // Security Group
 const sgWorkers = new aws.ec2.SecurityGroup("worker-sg", {
@@ -110,7 +115,7 @@ const sgWorkers = new aws.ec2.SecurityGroup("worker-sg", {
     cidrBlocks: ["0.0.0.0/0"],
   }],
   tags: { Name: "worker-sg" },
-});
+}, { provider });
 
 // User Data script - installs Docker, Compose, and clones the repo
 const userDataScript = pulumi.interpolate`#!/bin/bash
@@ -138,13 +143,19 @@ chown -R ec2-user:ec2-user /home/ec2-user/distributed-report-queue
 echo "User data script complete. Deploy job will connect via SSH to finish setup."
 `;
 
-// encodedUserData is no longer needed, pass script directly
-// const encodedUserData = userDataScript.apply((s: string) => Buffer.from(s).toString("base64"));
+// Dynamic AMI Lookup for Amazon Linux 2023
+const ami = aws.ec2.getAmi({
+    mostRecent: true,
+    owners: ["amazon"],
+    filters: [
+        { name: "name", values: ["al2023-ami-2023*-x86_64"] },
+        { name: "virtualization-type", values: ["hvm"] },
+    ],
+}, { provider });
 
-
-// EC2 Instance (replaces LaunchTemplate)
+// EC2 Instance
 const ec2Instance = new aws.ec2.Instance("worker-instance", {
-  ami: "ami-0ac80df6eff0e70b5", // Amazon Linux 2023 (ap-southeast-1)
+  ami: ami.then(a => a.id),
   instanceType: instanceType,
   subnetId: publicSubnet.id,
   vpcSecurityGroupIds: [sgWorkers.id],
@@ -157,7 +168,7 @@ const ec2Instance = new aws.ec2.Instance("worker-instance", {
     deleteOnTermination: true,
   },
   tags: { Name: "worker-instance" },
-});
+}, { provider });
 
 // Outputs
 export const publicIp = ec2Instance.publicIp;
