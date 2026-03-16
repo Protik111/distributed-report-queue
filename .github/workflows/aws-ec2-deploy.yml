@@ -64,7 +64,9 @@ jobs:
           cd infra-pulumi
           PUBLIC_IP=$(pulumi stack output publicIp --stack dev)
           echo "public_ip=${PUBLIC_IP}" >> $GITHUB_OUTPUT
-          echo "EC2 Public IP: ${PUBLIC_IP}"
+          
+          BUCKET=$(pulumi stack output reportsBucket --stack dev)
+          echo "reports_bucket=${BUCKET}" >> $GITHUB_OUTPUT
           
           echo "private_key<<EOF" >> $GITHUB_OUTPUT
           pulumi stack output privateKey --stack dev --show-secrets >> $GITHUB_OUTPUT
@@ -82,24 +84,20 @@ jobs:
         uses: appleboy/ssh-action@master
         env:
           DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
-          REPORTS_BUCKET_NAME: distributed-job-reports
+          REPORTS_BUCKET_NAME: ${{ steps.ec2.outputs.reports_bucket }}
+          AWS_REGION: ap-southeast-1
         with:
           host: ${{ steps.ec2.outputs.public_ip }}
           username: ec2-user
           key: ${{ steps.ec2.outputs.private_key }}
           timeout: 120s
-          envs: DOCKERHUB_USERNAME,REPORTS_BUCKET_NAME
+          envs: DOCKERHUB_USERNAME,REPORTS_BUCKET_NAME,AWS_REGION
           script: |
             set -e
-            echo "Starting deployment..."
-            
             cd ~/distributed-report-queue
-
-            echo "Syncing code from GitHub..."
             git fetch origin
             git reset --hard origin/main
 
-            echo "Creating .env file..."
             cat > .env << EOF
             REDIS_HOST=redis
             REDIS_PORT=6379
@@ -107,40 +105,29 @@ jobs:
             DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
             DOCKER_IMAGE_TAG=latest
             NODE_ENV=production
-            REPORTS_BUCKET=$REPORTS_BUCKET_NAME
-            AWS_REGION=ap-southeast-1
+            REPORTS_BUCKET_NAME=$REPORTS_BUCKET_NAME
+            AWS_REGION=$AWS_REGION
             EOF
 
-            echo "Verifying .env content (DOCKERHUB_USERNAME should be visible)..."
-            grep DOCKERHUB_USERNAME .env
-
-            # Copy .env to infra for docker-compose interpolation
             cp .env infra/.env
-
             cd infra
-            echo "Stopping existing services..."
             docker-compose -f docker-compose.prod.yml down --remove-orphans
-            
-            echo "Pulling latest images..."
             docker-compose -f docker-compose.prod.yml pull
-            
-            echo "Starting services..."
             docker-compose -f docker-compose.prod.yml up -d --scale worker=2
-            
-            echo "Cleaning up old images..."
             docker system prune -af --volumes=false
-            echo "Deployment script finished successfully."
 
       - name: Verify Deployment
         uses: appleboy/ssh-action@master
         env:
           DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          REPORTS_BUCKET_NAME: ${{ steps.ec2.outputs.reports_bucket }}
+          AWS_REGION: ap-southeast-1
         with:
           host: ${{ steps.ec2.outputs.public_ip }}
           username: ec2-user
           key: ${{ steps.ec2.outputs.private_key }}
           timeout: 120s
-          envs: DOCKERHUB_USERNAME
+          envs: DOCKERHUB_USERNAME,REPORTS_BUCKET_NAME,AWS_REGION
           script: |
             set -e
             cd ~/distributed-report-queue/infra

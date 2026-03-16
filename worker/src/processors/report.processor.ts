@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import logger from "../utils/logger";
 import redisConnection from "../lib/redis";
+import { uploadToS3 } from "../lib/s3.service";
 
 export interface IReportJobData {
   reportType: string;
@@ -104,10 +105,10 @@ export async function processReportJob(
     await browser.close();
     browser = null;
 
-    // 4. Save Locally
+    // 4. Upload to S3
     await job.updateProgress(80);
     const fileName = `${reportType}-${jobId}-${Date.now()}.pdf`;
-    const reportUrl = await saveToLocalDisk(pdfBuffer, fileName);
+    const reportUrl = await uploadToS3(pdfBuffer, fileName);
 
     // 5. Store Result in Redis (Metadata)
     await job.updateProgress(100);

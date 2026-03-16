@@ -26,6 +26,58 @@ const keyPair = new aws.ec2.KeyPair("worker-key-pair", {
     publicKey: sshKey.publicKeyOpenssh,
 }, { provider });
 
+// S3 Bucket for reports
+const bucket = new aws.s3.BucketV2("reports-bucket", {
+    bucket: `distributed-job-reports-${githubUsername}`,
+    forceDestroy: true, // Allow deletion if not empty during cleanup
+}, { provider });
+
+// Enable Public Access Block (disable it to allow public read)
+const bucketPublicAccessBlock = new aws.s3.BucketPublicAccessBlock("reports-bucket-pab", {
+    bucket: bucket.id,
+    blockPublicAcls: false,
+    blockPublicPolicy: false,
+    ignorePublicAcls: false,
+    restrictPublicBuckets: false,
+}, { provider });
+
+// IAM Role for EC2
+const ec2Role = new aws.iam.Role("worker-ec2-role", {
+    assumeRolePolicy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+            Action: "sts:AssumeRole",
+            Effect: "Allow",
+            Principal: { Service: "ec2.amazonaws.com" },
+        }],
+    }),
+}, { provider });
+
+// IAM Policy for S3 access
+const s3Policy = new aws.iam.RolePolicy("worker-s3-policy", {
+    role: ec2Role.id,
+    policy: pulumi.all([bucket.arn]).apply(([arn]) => JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+            {
+                Action: ["s3:PutObject", "s3:PutObjectAcl", "s3:GetObject"],
+                Effect: "Allow",
+                Resource: [`${arn}/*`],
+            },
+            {
+                Action: ["s3:ListBucket"],
+                Effect: "Allow",
+                Resource: [arn],
+            },
+        ],
+    })),
+}, { provider });
+
+// Instance Profile
+const instanceProfile = new aws.iam.InstanceProfile("worker-instance-profile", {
+    role: ec2Role.name,
+}, { provider });
+
 // VPC
 const vpc = new aws.ec2.Vpc("job-queue-vpc", {
   cidrBlock: "10.0.0.0/16",
@@ -161,6 +213,7 @@ const ec2Instance = new aws.ec2.Instance("worker-instance", {
   vpcSecurityGroupIds: [sgWorkers.id],
   keyName: keyPair.keyName,
   userData: userDataScript,
+  iamInstanceProfile: instanceProfile.name,
   associatePublicIpAddress: true,
   rootBlockDevice: {
     volumeSize: 20,
@@ -174,6 +227,6 @@ const ec2Instance = new aws.ec2.Instance("worker-instance", {
 export const publicIp = ec2Instance.publicIp;
 export const publicDns = ec2Instance.publicDns;
 export const ec2InstanceId = ec2Instance.id;
-export const reportsBucket = "distributed-job-reports";
+export const reportsBucket = bucket.id;
 export const dockerHubUsernameOut = dockerHubUsername;
 export const privateKey = sshKey.privateKeyPem;

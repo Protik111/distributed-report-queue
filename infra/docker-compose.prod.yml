@@ -55,6 +55,8 @@ services:
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379
       - NODE_ENV=production
+      - REPORTS_BUCKET_NAME=${REPORTS_BUCKET_NAME}
+      - AWS_REGION=${AWS_REGION:-ap-southeast-1}
     depends_on: [ redis ]
 
   dashboard-frontend:
