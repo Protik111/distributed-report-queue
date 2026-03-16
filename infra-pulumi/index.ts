@@ -1,14 +1,25 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
+import * as tls from "@pulumi/tls";
 
 const config = new pulumi.Config();
-const region = config.get("region") || "us-east-1";
+const region = config.get("region") || "ap-southeast-1";
 const instanceType = config.get("instanceType") || "t3.micro";
 
 // Get values from Pulumi config
 const dockerHubUsername = config.require("dockerHubUsername");
 const githubUsername = config.require("githubUsername");
-const keyPairName = config.require("keyPairName");
+
+// Create an SSH Key Pair dynamically
+const sshKey = new tls.PrivateKey("worker-ssh-key", {
+    algorithm: "RSA",
+    rsaBits: 4096,
+});
+
+const keyPair = new aws.ec2.KeyPair("worker-key-pair", {
+    keyName: "job-queue-auto-key",
+    publicKey: sshKey.publicKeyOpenssh,
+});
 
 // VPC
 const vpc = new aws.ec2.Vpc("job-queue-vpc", {
@@ -131,11 +142,11 @@ const encodedUserData = userDataScript.apply((s: string) => Buffer.from(s).toStr
 
 // EC2 Instance (replaces LaunchTemplate)
 const ec2Instance = new aws.ec2.Instance("worker-instance", {
-  ami: "ami-0c7217cdde3d9b9cf", // Amazon Linux 2023 (us-east-1)
+  ami: "ami-0ac80df6eff0e70b5", // Amazon Linux 2023 (ap-southeast-1)
   instanceType: instanceType,
   subnetId: publicSubnet.id,
   vpcSecurityGroupIds: [sgWorkers.id],
-  keyName: keyPairName,
+  keyName: keyPair.keyName,
   userData: encodedUserData,
   associatePublicIpAddress: true,
   rootBlockDevice: {
@@ -152,3 +163,4 @@ export const publicDns = ec2Instance.publicDns;
 export const ec2InstanceId = ec2Instance.id;
 export const reportsBucket = "distributed-job-reports";
 export const dockerHubUsernameOut = dockerHubUsername;
+export const privateKey = sshKey.privateKeyPem;
