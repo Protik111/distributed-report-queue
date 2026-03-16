@@ -188,5 +188,5 @@ app.get("/api/workers", async (_req, res) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`📊 Dashboard API running on port ${PORT}`);
+  console.log(`Dashboard API running on port ${PORT}`);
 });
