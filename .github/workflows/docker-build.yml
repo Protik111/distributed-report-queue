@@ -6,6 +6,7 @@ on:
     paths: 
       - '.github/**'
       - 'infra/**'
+      - 'infra-pulumi/**'
       - 'worker/**'
       - 'producer/**'
       - 'dashboard-api/**'
