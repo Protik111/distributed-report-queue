@@ -28,7 +28,7 @@ const keyPair = new aws.ec2.KeyPair("worker-key-pair", {
 
 // S3 Bucket for reports
 const bucket = new aws.s3.BucketV2("reports-bucket", {
-    bucket: `distributed-job-reports-${githubUsername}`,
+    bucket: `distributed-job-reports-${githubUsername}`.toLowerCase(),
     forceDestroy: true, // Allow deletion if not empty during cleanup
 }, { provider });
 
