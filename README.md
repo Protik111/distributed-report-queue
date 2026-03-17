@@ -80,7 +80,7 @@ The system is deployed via an automated pipeline defined in `.github/workflows/a
 
 Below is the live application running on an AWS EC2 instance:
 
-![Live Project on AWS](docs/assets/live-on-aws.png)
+![Live Project on AWS](docs/assets/live-site-on-aws.png)
 
 ---
 
