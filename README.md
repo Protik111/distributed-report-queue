@@ -3,7 +3,7 @@
 ## 1. Executive Summary
 This project implements a production-grade distributed job queue system designed for asynchronous report generation. Leveraging a decoupled microservices architecture, it ensures high availability, scalability, and reliability by using Redis as a message broker and AWS S3 for persistent storage.
 
-![System Architecture Diagram](architecture.png)
+![System Architecture Diagram](docs/assets/architecture.png)
 
 ---
 
@@ -14,24 +14,12 @@ The repository is organized into distinct sub-modules to separate infrastructure
 ```text
 .
 ├── dashboard-api/          # Express.js service providing queue analytics
-│   ├── src/
-│   │   ├── lib/redis.ts    # Centralized Redis connection logic
-│   │   └── app.ts          # REST endpoints for dashboard data
 ├── dashboard-frontend/     # React + Vite UI portal
-│   ├── src/
-│   │   ├── components/     # Reusable UI cards and tables
-│   │   └── App.tsx         # Dashboard main layout and state
 ├── producer/               # Entry point for submitting new job requests
-│   ├── src/
-│   │   └── app/routes/     # API route definitions
 ├── worker/                 # Core processing engine
-│   ├── src/
-│   │   ├── processors/     # PDF generation logic (Puppeteer)
-│   │   ├── lib/s3.service.ts # AWS S3 upload utility
-│   │   ├── index.ts        # Main worker initialization
-│   │   └── scheduler.ts    # Stalled job recovery monitor
 ├── infra/                  # Docker Compose files for local/prod environments
 ├── infra-pulumi/           # Infrastructure as Code (AWS provisioner)
+├── docs/assets/            # Architectural diagrams and screenshots
 └── assignment_report.md    # Detailed project documentation
 ```
 
@@ -55,15 +43,15 @@ The repository is organized into distinct sub-modules to separate infrastructure
 The Worker Service is the most critical part of the system, handling intensive PDF generation tasks.
 
 ### 4.1 Job Processing Lifecycle
-1.  **Job Claim**: A worker pulls a job from Redis and sets a lock (default 5 mins) to prevent other workers from touching it.
+1.  **Job Claim**: A worker pulls a job from Redis and sets a lock (default 5 mins).
 2.  **Rendering**: The `report.processor.ts` generates dynamic HTML based on the job payload.
 3.  **PDF Generation**: A local Puppeteer instance (Headless Chrome) renders the HTML.
-4.  **S3 Persistence**: The raw PDF buffer is uploaded to AWS S3 using the SDK, returning a public URL.
+4.  **S3 Persistence**: The raw PDF buffer is uploaded to AWS S3.
 5.  **Completion**: The worker updates the job status in Redis and releases the lock.
 
 ### 4.2 Error Handling & Concurrency
-- **Concurrency**: Each worker is configured to handle `WORKER_CONCURRENCY=2` jobs simultaneously using asynchronous event loops.
-- **Automatic Retries**: If Puppeteer fails (e.g., memory issue), BullMQ will automatically retry the job up to 3 times with exponential backoff.
+- **Concurrency**: Each worker is configured to handle `WORKER_CONCURRENCY=2` jobs simultaneously.
+- **Automatic Retries**: If Puppeteer fails, BullMQ automatically retries the job up to 3 times with exponential backoff.
 
 ---
 
@@ -79,22 +67,20 @@ The Worker Service is the most critical part of the system, handling intensive P
 ## 6. Infrastructure & CI/CD Pipeline
 
 ### 6.1 Infrastructure (Pulumi)
-The project uses **Pulumi (TypeScript)** to manage:
-- **Networking**: VPC, Public Subnets, and Internet Gateways.
-- **Compute**: EC2 instances with Amazon Linux 2023.
-- **Storage**: S3 buckets configured with public-read ACLs.
-- **IAM**: Instance Profiles allow the EC2 instances to talk to S3 without managing manual access keys.
+The project uses **Pulumi (TypeScript)** to manage networking, compute, and storage. Below is a snapshot of the provisioned resources in the AWS console:
+
+![Pulumi Provisioned Resources](docs/assets/pulumi-resources.png)
 
 ### 6.2 CI/CD Workflow (GitHub Actions)
 The system is deployed via an automated pipeline defined in `.github/workflows/aws-ec2-deploy.yml`:
 
-1.  **Trigger**: On push to `main` branch after a successful Docker build.
+1.  **Trigger**: On push to `main` branch.
 2.  **Infra Refresh**: Pulumi ensures the AWS environment is up-to-date.
-3.  **SSH Deployment**:
-    - The runner connects to the EC2 via SSH using dynamically generated keys from Pulumi.
-    - It pulls the latest code and Docker images.
-    - It runs `docker-compose -f infra/docker-compose.prod.yml up -d --scale worker=2`.
-4.  **Health Verification**: The pipeline runs `curl` checks against the producer and dashboard APIs to ensure the system is operational before finishing.
+3.  **SSH Deployment**: Runner connects via SSH to pull code and restart services.
+
+Below is the live application running on an AWS EC2 instance:
+
+![Live Project on AWS](docs/assets/live-on-aws.png)
 
 ---
 
