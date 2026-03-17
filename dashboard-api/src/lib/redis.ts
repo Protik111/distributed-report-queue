@@ -13,13 +13,13 @@ export const redisConnection = new IORedis({
 });
 
 redisConnection.on("connect", () =>
-  console.log("✅ Dashboard API connected to Redis"),
+  console.log("Dashboard API connected to Redis"),
 );
 redisConnection.on("error", (err) =>
-  console.error("❌ Redis error:", err.message),
+  console.error("Redis error:", err.message),
 );
 redisConnection.on("reconnecting", () => {
-  console.log("🔄 Retrying Redis connection...");
+  console.log("Retrying Redis connection...");
 });
 
 export default redisConnection;
