@@ -63,15 +63,51 @@ The Worker Service is the most critical part of the system, handling intensive P
 - **GET `5003/api/jobs/completed`**: Fetches the last successfully generated reports.
 
 ---
+6. Local Development with Docker
 
-## 6. Infrastructure & CI/CD Pipeline
+This project provides a pre-configured Docker environment for seamless local development. This setup includes Redis, the Producer, Worker, Scheduler, and Dashboard services.
 
-### 6.1 Infrastructure (Pulumi)
+### 6.1 Prerequisites
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+### 6.2 Setup Instructions
+
+1. **Environment Variables**:
+   Copy the example environment file and update it with your configuration (e.g., S3 credentials if needed for full functionality):
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Start Services**:
+   Navigate to the `infra` directory and start the containers:
+   ```bash
+   cd infra
+   docker-compose up --build
+   ```
+
+3. **Access Services**:
+   - **Dashboard UI**: [http://localhost:5004](http://localhost:5004)
+   - **Producer API**: [http://localhost:5001](http://localhost:5001)
+   - **Dashboard API**: [http://localhost:5003](http://localhost:5003)
+   - **Redis**: `localhost:6379`
+
+### 6.3 Common Commands
+
+- **Stop Services**: `docker-compose down`
+- **View Logs**: `docker-compose logs -f`
+- **Scale Workers**: `docker-compose up --scale worker=3 -d`
+
+---
+
+7. Infrastructure & CI/CD Pipeline
+
+### 7.1 Infrastructure (Pulumi)
 The project uses **Pulumi (TypeScript)** to manage networking, compute, and storage. Below is a snapshot of the provisioned resources in the AWS console:
 
 ![Pulumi Provisioned Resources](docs/assets/pulumi-resources.png)
 
-### 6.2 CI/CD Workflow (GitHub Actions)
+### 7.2 CI/CD Workflow (GitHub Actions)
 The system is deployed via an automated pipeline defined in `.github/workflows/aws-ec2-deploy.yml`:
 
 1.  **Trigger**: On push to `main` branch.
@@ -84,5 +120,5 @@ Below is the live application running on an AWS EC2 instance:
 
 ---
 
-## Conclusion
+## 8. Conclusion
 This system demonstrates a robust, production-ready distributed job queue using modern engineering practices and cloud-native infrastructure.
