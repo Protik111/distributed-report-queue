@@ -3,7 +3,25 @@
 ## 1. Executive Summary
 This project implements a production-grade distributed job queue system designed for asynchronous report generation. Leveraging a decoupled microservices architecture, it ensures high availability, scalability, and reliability by using Redis as a message broker and AWS S3 for persistent storage.
 
-![System Architecture Diagram](docs/assets/architecture.png)
+```mermaid
+graph TD
+    User([User/Client]) -- POST /api/v1/reports/generate --> Producer[Producer Service]
+    Producer -- Push Job --> Redis[(Redis - BullMQ)]
+    
+    subgraph "Worker Cluster"
+        Worker[Worker Service] -- Fetch Job --> Redis
+        Worker -- Render HTML --> Puppeteer[Puppeteer/Chrome]
+        Puppeteer -- PDF Stream --> Worker
+        Worker -- Upload PDF --> S3[(AWS S3 Bucket)]
+    end
+    
+    subgraph "Monitoring & Analytics"
+        DashboardAPI[Dashboard API] -- Query Stats/Jobs --> Redis
+        DashboardFrontend[Dashboard UI] -- GET /api/stats --> DashboardAPI
+    end
+    
+    Admin([Admin/User]) -- View Dashboard --> DashboardFrontend
+```
 
 ---
 
